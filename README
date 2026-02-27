@@ -1,0 +1,39 @@
+In einem pV-Diagramm eines idealen Gases sollen zwei beliebige Zustände durch Anklicken festgelegt werden (Anfangs- und Endzustand). Zwischen diesen beiden Zuständen sollen mögliche elementare Prozesspfade dargestellt werden, die sich aus der Kombination
+einfacher Zustandsänderungen ergeben, z. B.: isochor → isobar, isobar → isochor, isotherm, adiabatisch…
+
+Die entsprechenden Wege sollen im pV-Diagramm visualisiert werden.
+Eine Legende muss ausweisen, welche Zustandsänderungen dem jeweiligen Pfad zugrunde
+liegen. Berechnung und Anzeige, der für die einzelnen Prozesspfade vom Gas verrichtete
+Arbeit
+
+- Die Programmiersprache ist Python.
+
+- Das Programm muss in der Schulumgebung mit Thonny lauffähig sein.
+
+- Alle physikalisch oder numerisch relevanten Programmteile müssen nachvollziehbar
+kommentiert sein.
+
+- Der Entwicklungsprozess soll sichtbar sein, daher:
+  o Physik-Konzept: Auf 1–2 Seiten muss das verwendete physikalische Modell erläutert
+werden. Dabei sind insbesondere:
+▪ zugrunde liegende Annahmen
+▪ verwendete Gleichungen
+▪ getroffene Vereinfachungen
+darzustellen.
+  o Änderungsverlauf: Für jeden Arbeitstag eine neue Datei mit inkrementierendem
+Zähler (Bsp. Projekt_001, Projekt_002, …) alternativ Versionierung mit Git
+  o Projektprotokoll: Für jeden Arbeitstag muss stichwortartig festgehalten werden:
+▪ welche physikalischen Grundlagen erarbeitet wurden
+▪ welche Programmteile erstellt oder verändert wurden
+▪ aufgetretene Probleme und deren Lösung
+  o Abschlusspräsentation: Jede Gruppe stellt innerhalb von 10 Minuten ihr Projekt, den Code und das fertige Programm vor.
+Danach gibt es einen Teil mit Fragen zum Code und/oder Live-Anpassungen des
+Codes. Beide Projektmitglieder müssen in der Lage sein, sämtliche Programmteile zu
+erklären.
+
+Die Abgabe muss enthalten:
+• Python-Dateien
+• Physik-Konzept (PDF)
+• Projektprotokoll
+• Entwurf der Präsentation
+Späteste Abgabe aller Teile ist am 06.06.2026
