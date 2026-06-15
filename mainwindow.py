@@ -4,10 +4,14 @@ class simulator:
     def __init__(self, root): #initialisierung titel, größe, farbe auf dunkelblau
         self.root = root
         self.root.title("pV-Diagramm Simulator")
-        self.root.geometry("600x600")
+        self.root.geometry("600x700")
         self.root.configure(bg="#2c3e50")
 
-        tk.Label(root, text="Druck in Bar:", bg="#2c3e50", fg="white").pack() #textlabel und eingabefeld für Druck
+        # Zustands-Speicher für die Klicks
+        self.start_zustand = None
+        self.end_zustand = None
+
+        tk.Label(root, text="Druck in Bar:", bg="#2c3e50", fg="white").pack() #textlabel für live anzeige Druck
         self.ent_p = tk.Entry(root, borderwidth=0)
         self.ent_p.pack(pady=5) #vertikalen Abstand
 
@@ -15,15 +19,49 @@ class simulator:
         self.ent_v = tk.Entry(root, borderwidth=0)
         self.ent_v.pack(pady=5)
 
-        self.prozess_var = tk.StringVar(value="IT")
-        tk.OptionMenu(root, self.prozess_var, "IT", "IB", "IC").pack(pady=5) #option menu für die Prozesse, mit Standard IT
+        tk.Label(root, text="Klicke in das Diagramm für Start und Ende:", bg="#2c3e50", fg="#f1c40f").pack(pady=5)
+
+        self.prozess_var = tk.StringVar(value="IT (Isotherm -> Isochor)")
+        tk.OptionMenu(root, self.prozess_var, "IT (Isotherm -> Isochor)", "IB (Isobar -> Isochor)", "IC (Isochor -> Isobar)").pack(pady=5)
 
         tk.Button(root, text="Zeichnen", command=self.update_view, #Zeichnen Buton, wenn gedrückt wird selfupdateview ausgeführt
                   bg="#27ae60", fg="white", borderwidth=0).pack(pady=10)
 
         self.canvas = tk.Canvas(root, width=400, height=300, bg="white", highlightthickness=0) #erstellt canvas
         self.canvas.pack(pady=20)
+        self.canvas.bind("<Button-1>", self.on_canvas_click) # Bindet Mausklick an Canvas
+        
         self.draw_axes() #erstellt Koordinatensystem
+        self.draw_scale() # Zeichnet die Skala sofort beim Start
+
+    def on_canvas_click(self, event): # logik für Klicks
+        # wenn schon 2 Punkte da sind lösche alles für neuen Versuch
+        if self.start_zustand and self.end_zustand:
+            self.start_zustand = None
+            self.end_zustand = None
+            self.canvas.delete("points")
+            self.canvas.delete("plot")
+
+        # Umrechnung Pixel in Einheiten (x-Achse=15px, y-Achse=10px pro Einheit)
+        v = (event.x - 50) / 15
+        p = (250 - event.y) / 10
+        if v < 0.1: v = 0.1 # Verhindert, dass das Volumen 0 wird
+        if p < 0.1: p = 0.1
+        
+        #Live-Anzeige
+        self.ent_v.delete(0, tk.END) # Löscht den alten Wert im Feld
+        self.ent_v.insert(0, f"{v:.1f}") # Schreibt das neue Volumen mit 1 Nachkommastelle rein
+        self.ent_p.delete(0, tk.END)
+        self.ent_p.insert(0, f"{p:.1f}")
+
+
+        if not self.start_zustand:
+            self.start_zustand = (v, p)
+            self.canvas.create_oval(event.x-4, event.y-4, event.x+4, event.y+4, fill="green", tags="points")
+        else:
+            self.end_zustand = (v, p)
+            self.canvas.create_oval(event.x-4, event.y-4, event.x+4, event.y+4, fill="red", tags="points")
+            self.update_view() # Automatisch zeichnen wenn 2. Punkt gesetzt
 
     def draw_axes(self): #funktion für Achsen
         self.canvas.create_line(50, 250, 370, 250, width=2, tags="axes")
@@ -31,89 +69,68 @@ class simulator:
         self.canvas.create_text(380, 250, text="V", tags="axes", font=("Arial", 10, "bold"))
         self.canvas.create_text(50, 20, text="p", tags="axes", font=("Arial", 10, "bold"))
 
-    def draw_scale(self, min_v, max_v, min_p, max_p, scale_x, scale_y):
+    def draw_scale(self):
         self.canvas.delete("scale")
-
-        # X-Achse Markierungen
-        v_steps = 5
-        for i in range(v_steps + 1):
-            v_val = min_v + i * (max_v - min_v) / v_steps
-            x = 60 + (v_val - min_v) * scale_x
-            # Strich
+        # Feste Skala zeichnen (0 bis 20 Einheiten)
+        for i in range(0, 21, 5):
+            # X-Achse (Volumen)
+            x = 50 + i * 15 
             self.canvas.create_line(x, 248, x, 255, width=1, tags="scale")
-            # Beschriftung
-            self.canvas.create_text(x, 265, text=f"{v_val:.1f}",
-                                    font=("Arial", 7), tags="scale")
-
-        # Y-Achse Markierungen
-        p_steps = 5
-        for i in range(p_steps + 1):
-            p_val = min_p + i * (max_p - min_p) / p_steps
-            y = 240 - (p_val - min_p) * scale_y
-            # Strich
+            if i > 0: self.canvas.create_text(x, 265, text=str(i), font=("Arial", 7), tags="scale")
+            
+            # Y-Achse (Druck)
+            y = 250 - i * 10 
             self.canvas.create_line(48, y, 55, y, width=1, tags="scale")
-            # Beschriftung
-            self.canvas.create_text(35, y, text=f"{p_val:.1f}",
-                                    font=("Arial", 7), tags="scale")
+            if i > 0: self.canvas.create_text(35, y, text=str(i), font=("Arial", 7), tags="scale")
 
     def update_view(self): #update logic
-        self.canvas.delete("plot")
-        self.canvas.delete("scale") #alte Zeichnungen gelöscht
-        try:
-            p_start = float(self.ent_p.get())
-            v_start = float(self.ent_v.get()) #holt Werte aus den Eingabefeldern und wandelt sie in float um.
+        self.canvas.delete("plot") #alte Zeichnungen gelöscht
+        
+        # Falls Klicks vorhanden sonst die Eingabefelder
+        if self.start_zustand and self.end_zustand:
+            v_start, p_start = self.start_zustand
+            v_ziel, p_ziel = self.end_zustand
+        else:
+            try:
+                p_start = float(self.ent_p.get()) #holt Werte aus den Eingabefeldern und wandelt sie in float um.
+                v_start = float(self.ent_v.get())
+                p_ziel, v_ziel = p_start * 0.5, v_start * 2 # Standard-Ziel für Eingabefelder
+            except ValueError: return #wenn Text statt Zahl eingegeben
 
-            typ = self.prozess_var.get()
+        typ = self.prozess_var.get()
+        alle_v = []
+        alle_p = []
 
-            # Alle Punkte zuerst berechnen
-            alle_v = [v_start]
-            alle_p = [p_start]
-
-            for i in range(1, 11): #schleife die 10 Pkt berechnet
-                step = i * 2
-                if typ == "IT": #isotherm pv Konstant
-                    v_new = v_start + step
-                    if v_new == 0:
-                        v_new = 0.1
-                    p_new = (p_start * v_start) / v_new
-                elif typ == "IB": #isobar p konstant v steigt
-                    v_new = v_start + step
-                    p_new = p_start
-                else:  # isochor V konstant p steigt
-                    v_new = v_start
-                    p_new = p_start + step
-
+        if "IT" in typ: #isotherm pv Konstant -> dann isochor zum Ziel
+            for i in range(11): #schleife die 10 Pkt berechnet
+                t = i / 10.0
+                v_new = v_start + (v_ziel - v_start) * t
+                if v_new == 0: v_new = 0.1
+                p_new = (p_start * v_start) / v_new
                 alle_v.append(v_new)
                 alle_p.append(p_new)
+            alle_v.append(v_ziel) # Isochorer Ausgleichsschritt genau zum Endpunkt
+            alle_p.append(p_ziel)
+            
+        elif "IB" in typ: #isobar p konstant v steigt -> dann isochor zum Ziel
+            alle_v.extend([v_start, v_ziel, v_ziel])
+            alle_p.extend([p_start, p_start, p_ziel])
+            
+        else: # isochor V konstant p steigt -> dann isobar zum Ziel
+            alle_v.extend([v_start, v_start, v_ziel])
+            alle_p.extend([p_start, p_ziel, p_ziel])
 
-            # Scale berechnen
-            max_v = max(alle_v)
-            max_p = max(alle_p)
-            min_v = min(alle_v)
-            min_p = min(alle_p)
+        # Punkte in Koordinaten umrechnen
+        def to_canvas(v, p):
+            return 50 + v * 15, 250 - p * 10
 
-            scale_x = 280 / (max_v - min_v + 1)
-            scale_y = 180 / (max_p - min_p + 1)
+        punkte = []
+        for v, p in zip(alle_v, alle_p):
+            x, y = to_canvas(v, p)
+            punkte.extend([x, y])
 
-            # Achsenbeschriftung zeichnen
-            self.draw_scale(min_v, max_v, min_p, max_p, scale_x, scale_y)
-
-            # Punkte in Koordinaten umrechnen
-            def to_canvas(v, p):
-                x = 60 + (v - min_v) * scale_x
-                y = 240 - (p - min_p) * scale_y
-                return x, y
-
-            punkte = []
-            for v, p in zip(alle_v, alle_p):
-                x, y = to_canvas(v, p)
-                punkte.extend([x, y])
-
-            self.canvas.create_line(punkte, fill="#3498db", width=3, #punkte werden verbunden und mit blau gezeichnet
-                                    tags="plot", smooth=True)
-
-        except ValueError: #wenn Text statt Zahl eingegeben
-            pass
+        self.canvas.create_line(punkte, fill="#3498db", width=3, #punkte werden verbunden und mit blau gezeichnet
+                                tags="plot") 
 
 root = tk.Tk() #hauptfenster start
 app = simulator(root) #instanz
